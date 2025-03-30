@@ -107,7 +107,7 @@ class RollCog(commands.Cog):
         message = await inter.followup.send(embed=embed)
         self.bot.loop.create_task(self.end_rolla(roll_id, message, channel_ids, gift, end_time))
 
-    async def end_rolla(self, roll_id, message, channel_ids, gift, end_time):
+    async def end_roll(self, roll_id, message, channel_ids, gift, end_time):
         remaining_time = max(0, (end_time - datetime.utcnow()).total_seconds())
 
         if remaining_time > 0:
