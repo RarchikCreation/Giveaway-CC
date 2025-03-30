@@ -53,7 +53,7 @@ class RollCog(commands.Cog):
                         async for message in channel.history(limit=100):
                             if message.embeds and message.embeds[0].description and f"**ID:** {roll_id}" in \
                                     message.embeds[0].description:
-                                self.bot.loop.create_task(self.end_rolla(roll_id, message, channel_ids, gift, end_time))
+                                self.bot.loop.create_task(self.end_roll(roll_id, message, channel_ids, gift, end_time))
                                 found = True
                                 break
                         if found:
@@ -105,7 +105,7 @@ class RollCog(commands.Cog):
         )
 
         message = await inter.followup.send(embed=embed)
-        self.bot.loop.create_task(self.end_rolla(roll_id, message, channel_ids, gift, end_time))
+        self.bot.loop.create_task(self.end_roll(roll_id, message, channel_ids, gift, end_time))
 
     async def end_roll(self, roll_id, message, channel_ids, gift, end_time):
         remaining_time = max(0, (end_time - datetime.utcnow()).total_seconds())
