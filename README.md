@@ -37,6 +37,7 @@ This bot provides a system for managing giveaways
 | Command | Description |
 |---------|-------------|
 | `/roll` | Creates a roll |
+| `/rollv` | distribution among those who were in the voice channel the most | 
 | `/end_roll` | complete the roll |
 
 
