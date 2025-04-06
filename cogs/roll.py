@@ -53,7 +53,7 @@ class RollCog(commands.Cog):
                         async for message in channel.history(limit=100):
                             if message.embeds and message.embeds[0].description and f"**ID:** {roll_id}" in \
                                     message.embeds[0].description:
-                                self.bot.loop.create_task(self.end_roll(roll_id, message, channel_ids, gift, end_time))
+                                self.bot.loop.create_task(self.end_roll_task(roll_id, message, channel_ids, gift, end_time))
                                 found = True
                                 break
                         if found:
@@ -84,7 +84,6 @@ class RollCog(commands.Cog):
             if channel and isinstance(channel, disnake.VoiceChannel):
                 channel_mentions.append(channel.mention)
 
-
         def insert_roll():
             with sqlite3.connect(self.db_path) as conn:
                 cursor = conn.cursor()
@@ -105,9 +104,9 @@ class RollCog(commands.Cog):
         )
 
         message = await inter.followup.send(embed=embed)
-        self.bot.loop.create_task(self.end_roll(roll_id, message, channel_ids, gift, end_time))
+        self.bot.loop.create_task(self.end_roll_task(roll_id, message, channel_ids, gift, end_time))
 
-    async def end_roll(self, roll_id, message, channel_ids, gift, end_time):
+    async def end_roll_task(self, roll_id, message, channel_ids, gift, end_time):
         remaining_time = max(0, (end_time - datetime.utcnow()).total_seconds())
 
         if remaining_time > 0:
@@ -117,28 +116,25 @@ class RollCog(commands.Cog):
         await self.pick_winner(roll_id, message, channel_ids, gift)
 
     async def pick_winner(self, roll_id, message, channel_ids, gift):
-        guild = message.guild
-        participants = []
+        target_channel = message.channel if message else self.bot.get_channel(channel_ids[0])
 
+        participants = []
         for channel_id in channel_ids:
-            channel = guild.get_channel(channel_id)
+            channel = self.bot.get_channel(channel_id)
             if channel and isinstance(channel, disnake.VoiceChannel):
                 participants.extend(member.id for member in channel.members)
 
-        participants = [user_id for user_id in participants]
-
-        if participants:
-            winner_id = random.choice(participants)
-        else:
-            winner_id = None
+        winner_id = random.choice(participants) if participants else None
 
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             cursor.execute("UPDATE voice_rolls SET winner_id = ? WHERE id = ?", (winner_id, roll_id))
             conn.commit()
 
-        embed = message.embeds[0]
+        embed = message.embeds[0] if message else disnake.Embed(title="🎉 Голосовая раздача!",
+                                                                color=disnake.Color.orange())
         embed.color = disnake.Color.red()
+        embed.description = f"**Награда:** {gift}\n**ID:** {roll_id}"
 
         if winner_id:
             winner = await self.bot.fetch_user(winner_id)
@@ -146,7 +142,7 @@ class RollCog(commands.Cog):
         else:
             embed.description += "\n\n❌ **Победитель не определён.** Никто не участвовал."
 
-        await message.edit(embed=embed)
+        await target_channel.send(embed=embed)
 
     @commands.slash_command(description="Досрочно завершить розыгрыш")
     async def end_roll(self, inter: disnake.ApplicationCommandInteraction, roll_id: int):
